@@ -1,0 +1,25 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module profileell
+    interface  
+        subroutine ellprofile(maxstep,npix,xi1,xi2,broad,q1,q2,xib,angi,ell,smooth,phi0,nstep,olambda,wave,flux)  
+            integer intent(in) :: maxstep 
+	    integer intent(in) :: npix  
+	    real*4 intent(in) :: xi1
+            real*4 intent(in) :: xi2
+            real*4 intent(in) :: broad
+            real*4 intent(in) :: q1
+            real*4 intent(in) :: q2
+            real*4 intent(in) :: xib
+            real*4 intent(in) :: angi
+            real*8 intent(in) :: ell
+            character*2 intent(in) :: smooth 
+	    real*4 intent(in) :: phi0
+	    real*4 intent(in) :: olambda 
+	    real*4 dimension(npix),intent(in),depend(npix) :: wave
+            real*8 dimension(npix),intent(out),depend(npix) :: flux 
+        end subroutine ellprofile
+    end interface 
+end python module profileell
+
