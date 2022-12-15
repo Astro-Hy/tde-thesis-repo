@@ -16,13 +16,13 @@ def model_linefit_ell(theta, x, y, yerr, lines, narrowmu, fixed, fitted):
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed}
     xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1']
-    diskmodel = profileell.profile(params['maxstep'],params['npix'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi'],params['ell'],params['smooth'],params['phi0'],params['nstep'],params['olambda'],wave) 
+    diskmodel = profileell.ellprofile(params['maxstep'],params['npix'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi'],params['ell'],params['smooth'],params['phi0'],params['nstep'],params['olambda'],x) 
     widths = np.ones(len(lines))*narrowmu
     lineprofs = utils.build_line_profiles(x,lines,narrowmu)
-    M = np.empty((len(lines)+1,len(wave)))
+    M = np.empty((len(lines)+1,len(x)))
     for i in range(len(lines)):
-        M[i] = np.exp(-0.5*((wave-lines[i])/(widths[i]))**2)
-    Cinv = np.eye(wave.shape[0])*(1/yerr**2)
+        M[i] = np.exp(-0.5*((x-lines[i])/(widths[i]))**2)
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
     M[-1] = diskmodel 
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
@@ -54,36 +54,43 @@ def model_linefit_circ(theta, x, y, yerr, lines, narrowmu, fixed, fitted):
     model = np.sum((diskmodel*amps[-1],narrowmodel),axis=0)
     return model
 
-def model_linefit_broad(theta, x, y, yerr, lines, widths, fixed, lineprofs):
-    A,w = theta
-    broadmu = fixed
-    broadmodel = A*np.max(y)*np.exp((x-broadmu)**2 * (-0.5/w**2)) 
+def model_linefit_broad(theta, x, y, yerr, lines, narrowmu, fixed, fitted):
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed} 
+    broadmodel = np.exp((x-params['broadmu'])**2 * (-0.5/params['width']**2)) 
     widths = np.ones(len(lines))*narrowmu
-    lineprofs = utils.build_line_profiles(wave,lines,narrowmu)
-    M = np.empty((len(lines)+1,len(wave)))
+    lineprofs = utils.build_line_profiles(x,lines,narrowmu)
+    M = np.empty((len(lines)+1,len(x)))
     for i in range(len(lines)):
-        M[i] = np.exp(-0.5*((wave-lines[i])/(widths[i]))**2)
-    Cinv = np.eye(wave.shape[0])*(1/yerr**2)
+        M[i] = np.exp(-0.5*((x-lines[i])/(widths[i]))**2)
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = broadmodel
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
     amps = np.linalg.solve(rhs,lhs)
     narrowmodel = lineprofs[0] * amps[0]
     for line,amp in zip(lineprofs[1:],amps[1:-1]):
         narrowmodel+=line*amp
-    model = np.sum((broadmodel,narrowmodel),axis=0)
+    model = np.sum((broadmodel*amps[-1],narrowmodel),axis=0)
     return model
 
-def loglikelihood_broad(theta, x, y, yerr, lines, fixed, M, Cinv, lineprofs): 
-    A,w = theta
-    broadmu = fixed
-    broadmodel = A*np.max(y)*np.exp((x-broadmu)**2 * (-0.5/w**2)) 
-    lhs = M@Cinv@(y-broadmodel)
+def loglikelihood_broad(theta, x, y, yerr, lines, narrowmu,fixed, fitted, M, Cinv, lineprofs): 
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed} 
+    broadmodel = np.exp((x-params['broadmu'])**2 * (-0.5/params['width']**2)) 
+    widths = np.ones(len(lines))*narrowmu
+    M = np.empty((len(lines)+1,len(x)))
+    for i in range(len(lines)):
+        M[i] = np.exp(-0.5*((x-lines[i])/(widths[i]))**2)
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = broadmodel
+    lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
     amps = np.linalg.solve(rhs,lhs)
     narrowmodel = lineprofs[0] * amps[0]
-    for line,amp in zip(lineprofs[1:],amps[1:]):
+    for line,amp in zip(lineprofs[1:],amps[1:-1]):
         narrowmodel+=line*amp
-    model = np.sum((broadmodel,narrowmodel),axis=0)
+    model = np.sum((broadmodel*amps[-1],narrowmodel),axis=0)
     sigma2 = yerr**2 
     return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
@@ -91,7 +98,7 @@ def loglikelihood_ell(theta, x, y, yerr, lines, fixed, fitted, M, Cinv, lineprof
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed}
     xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1']
-    diskmodel = profileell.profile(params['maxstep'],params['npix'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi'],params['ell'],params['smooth'],params['phi0']%360,params['nstep'],params['olambda'],x)
+    diskmodel = profileell.ellprofile(params['maxstep'],params['npix'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi'],params['ell'],params['smooth'],params['phi0']%360,params['nstep'],params['olambda'],x)
     M[-1] = diskmodel 
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
@@ -100,7 +107,7 @@ def loglikelihood_ell(theta, x, y, yerr, lines, fixed, fitted, M, Cinv, lineprof
     for line,amp in zip(lineprofs[1:],amps[1:-1]):
         narrowmodel+=line*amp
     model = np.sum((diskmodel*amps[-1],narrowmodel),axis=0)
-    sigma2 = yerr**2 #+ model**2 * np.exp(2 * log_f)
+    sigma2 = yerr**2 
     return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
 def loglikelihood_circ(theta, x, y, yerr, lines, fixed, fitted, M, Cinv, lineprofs):
@@ -116,7 +123,7 @@ def loglikelihood_circ(theta, x, y, yerr, lines, fixed, fitted, M, Cinv, linepro
     for line,amp in zip(lineprofs[1:],amps[1:-1]):
         narrowmodel+=line*amp
     model = np.sum((diskmodel*amps[-1],narrowmodel),axis=0)
-    sigma2 = yerr**2 #+ model**2 * np.exp(2 * log_f)
+    sigma2 = yerr**2 
     return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
 class log_prior(object):
@@ -138,7 +145,7 @@ def log_probability(theta, x, y, yerr, lines, fixed):
     return lp + like 
 
 class logprob_ell(object):
-    def __init__(self, x, y, yerr, lines, fixed, fitted, mins, maxes, widths, lineprofs): 
+    def __init__(self, x, y, yerr, lines, narrowmu, fixed, fitted, mins, maxes): 
         self.x = x
         self.y = y
         self.yerr = yerr
@@ -148,22 +155,23 @@ class logprob_ell(object):
         self.mins = mins
         self.maxes = maxes
         self.widths = np.ones(len(lines))*narrowmu
-        self.lineprofs = utils.build_line_profiles(wave,lines,narrowmu)
+        self.narrowmu = narrowmu
+        self.lineprofs = utils.build_line_profiles(x,lines,narrowmu)
         self.M = np.empty((len(lines)+1,len(x)))
         for i in range(len(lines)):
-            self.M[i] = np.exp(-0.5*((x-lines[i])/(widths[i]))**2)
+            self.M[i] = np.exp(-0.5*((x-lines[i])/(self.widths[i]))**2)
         self.Cinv = np.eye(x.shape[0])*(1/yerr**2) # 
         self.log_prior = log_prior(self.mins, self.maxes)
     def __call__(self,theta):
         lp = self.log_prior(theta)
         if not np.isfinite(lp):
             return -np.inf
-        like = elllog_likelihood(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted, self.M, self.Cinv, self.lineprofs)   
+        like = loglikelihood_ell(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted, self.M, self.Cinv, self.lineprofs)   
         if like == np.nan:
             like = -np.inf
         return like+lp 
     def test(self,theta):
-        modelout = ellmodel_linefit(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted, self.M, self.Cinv, self.lineprofs) 
+        modelout = model_linefit_ell(theta, self.x, self.y, self.yerr, self.lines, self.narrowmu ,self.fixed, self.fitted) 
         return modelout 
 
 class logprob_circ(object):
@@ -177,6 +185,7 @@ class logprob_circ(object):
         self.mins = mins
         self.maxes = maxes
         self.widths = np.ones(len(lines))*narrowmu
+        self.narrowmu = narrowmu
         self.lineprofs = utils.build_line_profiles(x,lines,narrowmu)
         self.M = np.empty((len(lines)+1,len(x)))
         for i in range(len(lines)):
@@ -188,28 +197,30 @@ class logprob_circ(object):
         like = loglikelihood_circ(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted, self.M, self.Cinv, self.lineprofs)  
         return like+lp 
     def test(self,theta):
-        modelout = model_linefit_circ(theta, self.x, self.y, self.yerr, self.lines, self.widths, self.fixed, self.fitted) 
+        modelout = model_linefit_circ(theta, self.x, self.y, self.yerr, self.lines, self.narrowmu, self.fixed, self.fitted) 
         return modelout 
 
 class logprob_broad(object):
-    def __init__(self, x, y, yerr, lines, fixed, mins, maxes, widths, lineprofs): 
+    def __init__(self, x, y, yerr, lines, narrowmu, fixed, fitted, mins, maxes): 
         self.x = x
         self.y = y
         self.yerr = yerr
         self.lines = lines
         self.fixed = fixed
+        self.fitted = fitted
         self.mins = mins
         self.maxes = maxes
+        self.widths = np.ones(len(lines))*narrowmu
+        self.lineprofs = utils.build_line_profiles(x,lines,narrowmu)
         self.M = np.empty((len(lines),len(x)))
         for i in range(len(lines)):
-            self.M[i] = np.exp(-0.5*((x-lines[i])/(widths[i]))**2)
-        self.Cinv = np.eye(x.shape[0])*(1/yerr**2) #
-        self.lineprofs = lineprofs
+            self.M[i] = np.exp(-0.5*((x-lines[i])/(self.widths[i]))**2)
+        self.Cinv = np.eye(x.shape[0])*(1/yerr**2) 
     def __call__(self,theta):
-        like = log_likelihood_broad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.M, self.Cinv, self.lineprofs) 
+        like = loglikelihood_broad(theta, self.x, self.y, self.yerr, self.lines, self.narrowmu, self.fixed, self.fitted, self.M, self.Cinv, self.lineprofs) 
         return like 
     def test(self,theta):
-        modelout = model_linefit_broad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.M, self.Cinv, self.lineprofs) 
+        modelout = model_linefit_broad(theta, self.x, self.y, self.yerr, self.lines, self.narrowmu, self.fixed, self.fitted) 
         return modelout 
 
 
