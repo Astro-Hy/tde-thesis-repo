@@ -5,7 +5,7 @@ import setuptools
 #import version
 import numpy.f2py
 from numpy.distutils.core import setup as npsetup
-install_requires = ["numpy", "scipy", "ptemcee", "emcee", "diskmodels", 'ultranest']
+install_requires = ["numpy>=1.22.2", "scipy", "ptemcee", "emcee", "diskmodels", 'ultranest']
 
 #r = numpy.f2py.run_main(['-c','diskfit/profileell.pyf','-m','diskfit/profileell.so','diskfit/profileell.f'])
 
