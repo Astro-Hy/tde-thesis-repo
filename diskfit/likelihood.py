@@ -78,11 +78,6 @@ def loglikelihood_broad(theta, x, y, yerr, lines, narrowmu,fixed, fitted, M, Cin
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed} 
     broadmodel = np.exp((x-params['broadmu'])**2 * (-0.5/params['width']**2)) 
-    widths = np.ones(len(lines))*narrowmu
-    M = np.empty((len(lines)+1,len(x)))
-    for i in range(len(lines)):
-        M[i] = np.exp(-0.5*((x-lines[i])/(widths[i]))**2)
-    Cinv = np.eye(x.shape[0])*(1/yerr**2)
     M[-1] = broadmodel
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
@@ -210,9 +205,10 @@ class logprob_broad(object):
         self.fitted = fitted
         self.mins = mins
         self.maxes = maxes
+        self.narrowmu = narrowmu
         self.widths = np.ones(len(lines))*narrowmu
         self.lineprofs = utils.build_line_profiles(x,lines,narrowmu)
-        self.M = np.empty((len(lines),len(x)))
+        self.M = np.empty((len(lines)+1,len(x)))
         for i in range(len(lines)):
             self.M[i] = np.exp(-0.5*((x-lines[i])/(self.widths[i]))**2)
         self.Cinv = np.eye(x.shape[0])*(1/yerr**2) 
