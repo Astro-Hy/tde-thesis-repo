@@ -195,7 +195,9 @@ lp = likelihood.logprob_ell(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes
 
 lp = likelihood.logprob_broad(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
 ```
+
 where the inputs are:   
+    
     wl: wavelengths (observed)
 
     flux: measured fluxes
@@ -216,6 +218,7 @@ It can then be called inside a fitting function with the input :
 	theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
 
 For example, if we use emcee to fit the disk parameters we could write the following:
+
 ```
 pos = initial + 1e-1 * initial * np.random.randn(20, initial.shape[0])
 nwalkers, ndim = pos.shape
@@ -223,4 +226,5 @@ sampler = emcee.EnsembleSampler(
         nwalkers, ndim, lp, args=()
     )
 ```
+
 where ``` initial``` is an array of values containing an initial guess for each fitted parameter.
