@@ -21,19 +21,19 @@ The best way to get started understanding how to use this code is the example ju
 The log likelihood functions available in the diskfit module rely on the input of two dictionaries: one containing the names and values of 'fixed' parameters and one containing the names and starting values of 'fitted' parameters. All parameters must be defined in either one of these two dictionaries. The required parameters are as follows:
 
 ### For all models:
-###### Parameters which can either be fitted or fixed:
+#### Parameters which can either be fitted or fixed:
 'z': redshift
 
 'narrowwidth': The width of the narrow emission lines in Angstroms
 
 ### For the Gaussian broad line model:
-###### Parameters which can either be fitted or fixed:
+#### Parameters which can either be fitted or fixed:
 'broadlam': The central rest wavelength of the Gaussian broadline
 
 'broadwidth': The width of the broad emission line in Angstroms
 
 ### For the circular disk model:
-###### Parameters which can either be fitted or fixed:
+#### Parameters which can either be fitted or fixed:
 'olambda': nominal rest wavelength of the Halpha line (Angstrom)
 
 'q1': inner emissivity powerlaw index
@@ -72,7 +72,7 @@ Spiral arms:
 
 'xispout': outer spiral arm radius radius (GM/c^2, 0=XI2)
 
-###### Parameters which must be fixed:
+#### Parameters which must be fixed:
 'wavemin': minimum rest wavelength (Angstrom)
 
 'wavemax': maximum rest wavelength (Angstrom)
@@ -92,7 +92,7 @@ Spiral arms:
 'npix' = integer number of wavelength points (the size of the wavelength array)
 
 ### For the elliptical disk model:
-###### Parameters which can either be fitted or fixed:
+#### Parameters which can either be fitted or fixed:
 'olambda': nominal rest wavelength of the Halpha line (Angstrom)
 
 'q1': inner emissivity powerlaw index
@@ -113,7 +113,7 @@ Spiral arms:
 
 'phi0': major axis orientation (0-360 deg)
 
-###### Parameters which must be fixed:
+#### Parameters which must be fixed:
 'smooth' = 'y'#smoothly varying eccentricity (y/n)[n] 
 
 'wavemin': minimum rest wavelength (Angstrom)
@@ -139,8 +139,9 @@ fitted_labels = ['xi1','xi2','broad','angi','z']
 initial = [xi1,xi2,broad,angi,z]
 fitted = dict(zip(fitted_labels,initial))
 ```
-The likelihood functions also require the observed wavelength array as aninput. The observed wavelength is converted to the rest wavelength using the redshift parameter in the likelihood functions. The observed flux (in any units) and flux errors corresponding to the wavelength array are also required. Make sure to trim the wavelength and flux arrays so they only contain the region around H alpha.In the below example, the spectrum file contains 3 columns: observed wavelength (Angstroms), flux (after continuum subtraction with ppxf) and the flux errors.
+The likelihood functions also require the observed wavelength array as an input. The observed wavelength is converted to the rest wavelength using the redshift parameter in the likelihood functions. The observed flux (in any units) and flux errors corresponding to the wavelength array are also required. Make sure to trim the wavelength and flux arrays so they only contain the region around H alpha.In the below example, the spectrum file contains 3 columns: observed wavelength (Angstroms), flux (after continuum subtraction with ppxf) and the flux errors.
 ```
+from diskfit import utils
 fn = 'data/ZTF18aahiqst_subtracted.txt'
 wl,flux,fluxerr = utils.readspec(fn)
 z = 0.0745 # Redshift
@@ -186,6 +187,8 @@ lines = [Halpha,NIIa,NIIb,SIIa,SIIb]
 
 The log probability function can be initialized as follows for the circular, elliptical and Gaussian broad line models:
 ```
+from diskfit import likelihood
+
 lp = likelihood.logprob_circ(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
 
 lp = likelihood.logprob_ell(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
