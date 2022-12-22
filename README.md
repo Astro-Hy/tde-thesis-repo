@@ -24,7 +24,7 @@ The log likelihood functions available in the diskfit module rely on the input o
 ###### Parameters which can either be fitted or fixed:
 'z': redshift
 
-'narrowmidth': The width of the narrow emission lines in Angstroms
+'narrowwidth': The width of the narrow emission lines in Angstroms
 
 ### For the Gaussian broad line model:
 ###### Parameters which can either be fitted or fixed:
@@ -132,12 +132,14 @@ Spiral arms:
 
 See the example code for how to create dictionaries of fixed and fitted parameters.
 
+The likelihood functions also require the observed wavelength array as aninput. The observed wavelength is converted to the rest wavelength using the redshift parameter in the likelihood functions. The observed flux (in any units) and flux errors corresponding to the wavelength array are also required. Make sure to trim the wavelength and flux arrays so they only contain the region around H alpha.
+ 
 ### Setting uniform priors
-The likelihood functions currently supports a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each fitted parameters. See the example code for how incorporate the bounds of the uniform priors. 
+The likelihood function currently supports a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each of the fitted parameters in order. See the example code for how incorporate the bounds of the uniform priors into the fitting. 
 
 ### Solving for narrow line and diskmodel amplitudes
  
-The log likelihood functions automatically solve the linear equation for the amplitudes of the narrow lines and the broad line after calculating the disk model for the given parameters. The only requirement from the user is to specify the wavelength of the desired lines as follows:
+The log likelihood functions automatically solve the linear equation for the best fit amplitudes of the narrow lines and the broad line after calculating the disk model for the given parameters. The only requirement from the user is to specify the wavelength of the desired lines as follows:
 
 NIIa = 6549.86
 
@@ -151,5 +153,42 @@ SIIb = 6732.68
 
 lines = [Halpha,NIIa,NIIb,SIIa,SIIb]
 
+### Putting everything together
 
+The log probability function can be initialized as follows for the circular, elliptical and Gaussian broad line models:
+```
+lp = likelihood.logprob_circ(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
 
+lp = likelihood.logprob_ell(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
+
+lp = likelihood.logprob_broad(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
+```
+where the inputs are:   
+    wl: wavelengths (observed)
+
+    flux: measured fluxes
+
+    fluxerr: flux uncertainties
+
+    lines: list of narrow emission line wavelengths to be included in the model
+
+    fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+
+    fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
+
+    mins: list of minimum values for the parameters in the fitted dictionary (in the same order).
+
+    maxes: list of maximum values for the parameters in the fitted dictionary (in the same order).
+
+It can then be called inside a fitting function with the input :
+	theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
+
+For example, if we use emcee to fit the disk parameters we could write the following:
+```
+pos = initial + 1e-1 * initial * np.random.randn(20, initial.shape[0])
+nwalkers, ndim = pos.shape
+sampler = emcee.EnsembleSampler(
+        nwalkers, ndim, lp, args=()
+    )
+```
+where ``` initial``` is an array of values containing an initial guess for each fitted parameter.

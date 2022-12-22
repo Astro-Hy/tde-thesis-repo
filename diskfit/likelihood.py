@@ -153,7 +153,7 @@ def loglikelihood_ell(theta, w, y, yerr, lines, fixed, fitted):
 
     Inputs
     theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
-    x: wavelengths (observed)
+    w: wavelengths (observed)
     y: measured fluxes
     yerr: flux uncertainties
     lines: list of narrow emission line wavelengths to be included in the model 
@@ -191,7 +191,7 @@ def loglikelihood_circ(theta, w, y, yerr, lines, fixed, fitted):
 
     Inputs
     theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
-    x: wavelengths (observed)
+    w: wavelengths (observed)
     y: measured fluxes
     yerr: flux uncertainties
     lines: list of narrow emission line wavelengths to be included in the model 
