@@ -15,24 +15,23 @@ Some notes on the installation:
 
 If you encounter errors importing the diskmodels module, something has gone wrong with the f2py fortran compilation. If you have issues importing the diskfit module, something has gone wrong with the python installation. If you run into troubles I'm happy to help!
 
-#Code usage
+# Code usage
 The best way to get started understanding how to use this code is the example jupyter notebooks in the examples directory - they will hopefully be easily modifiable for different use cases!
 
 The log likelihood functions available in the diskfit module rely on the input of two dictionaries: one containing the names and values of 'fixed' parameters and one containing the names and starting values of 'fitted' parameters. All parameters must be defined in either one of these two dictionaries. The required parameters are as follows:
-<ul>
-<li>
-For all models:
-</ul>
+
+### For all models:
+###### Parameters which can either be fitted or fixed:
 'z': redshift
 'narrowmidth': The width of the narrow emission lines in Angstroms
 
-For the Gaussian broad line model:
+### For the Gaussian broad line model:
+###### Parameters which can either be fitted or fixed:
 'broadlam': The central rest wavelength of the Gaussian broadline
 'broadwidth': The width of the broad emission line in Angstroms
 
-For the circular disk model:
-
-Parameters which can either be fitted or fixed:
+### For the circular disk model:
+###### Parameters which can either be fitted or fixed:
 'olambda': nominal rest wavelength of the Halpha line (Angstrom)
 'q1': inner emissivity powerlaw index
 'q2': outer emissivity powerlaw index
@@ -53,7 +52,7 @@ Spiral arms:
 'xispin': inner spiral arm radius radius (GM/c^2, 0=XI1)
 'xispout': outer spiral arm radius radius (GM/c^2, 0=XI2)
 
-Parameters which must be fixed:
+###### Parameters which must be fixed:
 'wavemin': minimum rest wavelength (Angstrom)
 'wavemax': maximum rest wavelength (Angstrom)
 'maxstep': maximum number of integration steps for diskmodel (int)
@@ -64,9 +63,8 @@ Parameters which must be fixed:
 'narms': number of arms (integer)
 'npix' = integer number of wavelength points (the size of the wavelength array)
 
-For the elliptical disk model:
-
-Parameters which can either be fitted or fixed:
+### For the elliptical disk model:
+###### Parameters which can either be fitted or fixed:
 'olambda': nominal rest wavelength of the Halpha line (Angstrom)
 'q1': inner emissivity powerlaw index
 'q2': outer emissivity powerlaw index
@@ -78,7 +76,7 @@ Parameters which can either be fitted or fixed:
 'ell': eccentricity (< 1), outer eccentricity if varying smoothly
 'phi0': major axis orientation (0-360 deg)
 
-Parameters which must be fixed:
+###### Parameters which must be fixed:
 'smooth' = 'y'#smoothly varying eccentricity (y/n)[n] 
 'wavemin': minimum rest wavelength (Angstrom)
 'wavemax': maximum rest wavelength (Angstrom)
@@ -89,8 +87,10 @@ Parameters which must be fixed:
 'npix' = integer number of wavelength points (the size of the wavelength array)
 
 See the example code for how to create dictionaries of fixed and fitted parameters.
+### Setting uniform priors
+The likelihood functions currently supports a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each fitted parameters. See the example code for how incorporate the bounds of the uniform priors. 
 
-The likelihood functions currently support a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each fitted parameters. See the example code for how incorporate the bounds of the uniform priors. 
+### Solving for narrow line and diskmodel amplitudes
  
 The log likelihood functions automatically solve the linear equation for the amplitudes of the narrow lines and the broad line after calculating the disk model for the given parameters. The only requirement from the user is to specify the wavelength of the desired lines as follows:
 
