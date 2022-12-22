@@ -2,6 +2,7 @@
 
 A package to fit circular and elliptical accretion disk models to double-peaked broad line AGN spectra. It can also fit simple Gaussian broad line models.  
 
+#Installation
 Essential dependencies: numpy version>1.22.2, a fortran compiler such as gfortran, scipy, emcee, matplotlib. Optional dependencies: ptemcee, ultranest. 
 
 To install: clone this repo, move to the top directory of the package, and run:
@@ -14,12 +15,14 @@ Some notes on the installation:
 
 If you encounter errors importing the diskmodels module, something has gone wrong with the f2py fortran compilation. If you have issues importing the diskfit module, something has gone wrong with the python installation. If you run into troubles I'm happy to help!
 
-Some notes on code usage:
+#Code usage
 The best way to get started understanding how to use this code is the example jupyter notebooks in the examples directory - they will hopefully be easily modifiable for different use cases!
 
-The log likelihood functions available in the diskfit module rely on the input of two dictionaries. One of 'fixed' parameters and one of 'fitted parameters. All parameters must be defined in either one of these two dictionaries. The parameters are as follows:
-
+The log likelihood functions available in the diskfit module rely on the input of two dictionaries: one containing the names and values of 'fixed' parameters and one containing the names and starting values of 'fitted' parameters. All parameters must be defined in either one of these two dictionaries. The required parameters are as follows:
+<ul>
+<li>
 For all models:
+</ul>
 'z': redshift
 'narrowmidth': The width of the narrow emission lines in Angstroms
 
@@ -38,11 +41,11 @@ Parameters which can either be fitted or fixed:
 'xi1': inner disk radius (GM/c^2)
 'xi2': outer disk radius (multiple of xi1)
 'broad': broadening parameter (km/s)
-#Wind properties
+Wind properties:
 't0': optical depth normalization (0=no wind)
 'eta': optical depth power-law index
 'anglam': wind opening angle (degrees)
-# Spiral arms
+Spiral arms:
 'amp': contrast of spiral arm (0=no arms)
 'aobs': spiral orientation (degrees, +ve=outer, -ve=inner)
 'pitch': pitch angle of spiral pattern (+ve=leading, -ve=trailing)
