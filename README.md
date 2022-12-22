@@ -130,29 +130,58 @@ Spiral arms:
 
 'npix' = integer number of wavelength points (the size of the wavelength array)
 
-See the example code for how to create dictionaries of fixed and fitted parameters.
+Once we have assigned a value for each parameter above to a corresponding variable, we must then create dictionaries of fixed and fitted parameters.
+```
+fixed_labels = ['narrowwidth','q1','q2','xib','maxstep','anglam','t0','eta','version','amp','narms','aobs','pitch','width','xispin','xispout','nstep','relativistic','olambda','npix']
+fixed_values = [narrowwidth,q1,q2,xib,maxstep,anglam,t0,eta,version,amp,narms,aobs,pitch,width,xispin,xispout,nstep,relativistic,olambda,npix]
+fixed = dict(zip(fixed_labels,fixed_values))
+fitted_labels = ['xi1','xi2','broad','angi','z']
+initial = [xi1,xi2,broad,angi,z]
+fitted = dict(zip(fitted_labels,initial))
+```
+The likelihood functions also require the observed wavelength array as aninput. The observed wavelength is converted to the rest wavelength using the redshift parameter in the likelihood functions. The observed flux (in any units) and flux errors corresponding to the wavelength array are also required. Make sure to trim the wavelength and flux arrays so they only contain the region around H alpha.In the below example, the spectrum file contains 3 columns: observed wavelength (Angstroms), flux (after continuum subtraction with ppxf) and the flux errors.
+```
+fn = 'data/ZTF18aahiqst_subtracted.txt'
+wl,flux,fluxerr = utils.readspec(fn)
+z = 0.0745 # Redshift
+wavemin = 6300  # minimum rest wavelength (Angstrom)
+wavemax = 6900  # maximum rest wavelength (Angstrom)
+wave = wl/(1+z) # Convert the spectrum to rest frame wavelength
+indwave = np.argwhere((wave>wavemin)&(wave<wavemax))[:,0]
+wl = np.asarray(wl[indwave],dtype=np.float64)
+flux = flux[indwave]
+fluxerr = fluxerr[indwave]
+npix = wl.shape[0]
+``` 
 
-The likelihood functions also require the observed wavelength array as aninput. The observed wavelength is converted to the rest wavelength using the redshift parameter in the likelihood functions. The observed flux (in any units) and flux errors corresponding to the wavelength array are also required. Make sure to trim the wavelength and flux arrays so they only contain the region around H alpha.
- 
 ### Setting uniform priors
-The likelihood function currently supports a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each of the fitted parameters in order. See the example code for how incorporate the bounds of the uniform priors into the fitting. 
-
+The likelihood function currently supports a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each of the fitted parameters in order, e.g.
+```
+angimax = 89.9
+angimin= 0.1
+xi1min = 50
+xi1max = 2000
+xi2min = 1.01
+xi2max = 40
+broadmin = 0
+broadmax = 1000
+zmin = 0.99*z
+zmax=1.01*z
+diskmins = [xi1min,xi2min,broadmin,angimin,zmin]
+diskmax = [xi1max,xi2max,broadmax,angimax,zmax]
+```
+ 
 ### Solving for narrow line and diskmodel amplitudes
  
 The log likelihood functions automatically solve the linear equation for the best fit amplitudes of the narrow lines and the broad line after calculating the disk model for the given parameters. The only requirement from the user is to specify the wavelength of the desired lines as follows:
-
+```
 NIIa = 6549.86
-
 Halpha = 6564.614
-
 NIIb = 6585.27
-
 SIIa = 6718.29
-
 SIIb = 6732.68
-
 lines = [Halpha,NIIa,NIIb,SIIa,SIIb]
-
+```
 ### Putting everything together
 
 The log probability function can be initialized as follows for the circular, elliptical and Gaussian broad line models:
