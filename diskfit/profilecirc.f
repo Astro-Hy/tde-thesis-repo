@@ -18,7 +18,8 @@ C
       real*4 xi
       real*4 angi,anglam,t0,eta,amp,aobs
       real*4 pitch,width,xispin,xispout,olambda
-      REAL*4 PHIP(MAXSTEP),WAVE(npix),flux(npix)
+      REAL*4 PHIP(MAXSTEP),WAVE(npix)
+      REAL*8 flux(npix)
       character*1 version,relativistic
 
 Cf2py intent(in) maxstep

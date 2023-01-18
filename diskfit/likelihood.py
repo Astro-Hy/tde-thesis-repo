@@ -327,8 +327,8 @@ class logprob_circ(object):
         float containing sum of the log prior and the log likelihood of the data given the model.
         '''
         lp = self.log_prior(theta)
-        like = loglikelihood_circ(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)#, self.M, self.Cinv, self.lineprofs)  
-        if like + lp == np.nan:
+        like = loglikelihood_circ(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)
+        if np.isnan(like+lp):
             return -np.inf
         return like+lp 
     def test(self,theta):
@@ -364,6 +364,7 @@ class logprob_broad(object):
         self.fitted = fitted
         self.mins = mins
         self.maxes = maxes
+        self.log_prior = log_prior(self.mins, self.maxes)
     def __call__(self,theta):
         '''
         Input
@@ -372,8 +373,11 @@ class logprob_broad(object):
         Output
         float containing sum of the log prior and the log likelihood of the data given the model.
         '''
+        lp = self.log_prior(theta)
         like = loglikelihood_broad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)#, self.M, self.Cinv, self.lineprofs) 
-        return like 
+        if like + lp == np.nan:
+            return -np.inf
+        return like+lp  
     def test(self,theta):
         '''
         For plotting of models

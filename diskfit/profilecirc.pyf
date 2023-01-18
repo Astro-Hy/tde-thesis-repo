@@ -27,7 +27,7 @@ python module profilecirc
             real*4 intent(in) :: olambda
             integer intent(in) :: npix
             real*4 dimension(npix),intent(in),depend(npix) :: wave
-            real*4 dimension(npix),intent(out),depend(npix) :: flux 
+            real*8 dimension(npix),intent(out),depend(npix) :: flux 
         end subroutine profile
     end interface 
 end python module profilecirc
