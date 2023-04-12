@@ -20,7 +20,7 @@ def configuration(parent_package='', top_path=None, package_path=None):
 
 if __name__ == '__main__':
     
-    npsetup(**configuration(parent_package='',top_path='diskfit/',package_path='diskfit/').todict())
+    #npsetup(**configuration(parent_package='',top_path='diskfit/',package_path='diskfit/').todict())
     packages = find_packages() 
     npsetup(
         name="diskfit",

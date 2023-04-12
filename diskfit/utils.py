@@ -16,6 +16,15 @@ def build_line_profiles(x, mus, widths):
         profiles[i] = np.exp( (x-m)**2 * (-0.5/w**2) )
     return profiles
 
+def build_fixedratio_profiles(x, mus, widths, ratios):
+    widths = np.atleast_1d(widths)
+    if len(widths) == 1:
+        widths = np.full(len(mus),widths)
+    profiles = np.zeros((len(x))) 
+    for i,(m,w) in enumerate(zip(mus,widths)): 
+        profiles = np.sum((profiles,ratios[i]*np.exp( (x-m)**2 * (-0.5/w**2) )),axis=0)
+    return profiles
+
 def get_narrowline_matrices(wave,lines,narrowmu,fluxerr):
     widths = np.ones(len(lines))*narrowmu
     lineprof = build_line_profiles(wave,lines,narrowmu)
