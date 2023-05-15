@@ -7,6 +7,16 @@ def readspec(fn):
 def gaussian(x, mu, sig, amp):
     return amp*np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
+def build_doublet_profiles(x, mus, widths, ratios):
+    widths = np.atleast_1d(widths)
+    if len(widths) == 1:
+        widths = np.full(len(mus),widths)
+    profiles = np.empty((int(1+(len(mus)-1)/2),len(x)))
+    profiles[0] = np.exp( (x-mus[0])**2 * (-0.5/widths[0]**2) ) 
+    for i,p in zip(np.arange(1,len(mus),2),np.arange(profiles.shape[0])):
+        profiles[p+1] = np.sum((np.exp( (x-mus[i])**2 * (-0.5/widths[i]**2)),ratios[p]*np.exp( (x-mus[i+1])**2 * (-0.5/widths[i+1]**2) )),axis=0) 
+    return profiles
+
 def build_line_profiles(x, mus, widths):
     widths = np.atleast_1d(widths)
     if len(widths) == 1:
