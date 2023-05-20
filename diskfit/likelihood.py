@@ -385,7 +385,65 @@ def plot_linefit_circ_freeratio_twocompnarrow(theta, w, y, yerr, linesin, fixed,
     return np.sum((diskmodelb * amps[1],diskmodel*amps[-1]),axis=0),broadmodel,narrowmodel
 
 
+def plot_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, linesin, fixed, fitted):
+    """
+    Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, find the best fit amplitudes for the disk and the narrow lines, and return the full model as an array.
+    Inputs
+    theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
+    x: wavelengths (observed)
+    y: measured fluxes
+    yerr: flux uncertainties
+    lines: list of narrow emission line wavelengths to be included in the model 
+    fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+    fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
 
+    Output:
+    model: array of model fluxes corresponding to the input wavelengths
+    """
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed}
+    x = w/(1+params['z'])
+    lines = np.copy(linesin)
+    params['t0'] = np.exp(params['t0'])
+    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth3'],np.ones(2)*params['broadwidth2'])) 
+    lines = np.copy(linesin)
+    ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
+    lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
+    lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
+    lines[-2] = lines[-2]+params['diff']
+    lines[-1] = lines[-1]+params['diff']
+    lines[-4] = lines[-2]+params['diff2']
+    lines[-3] = lines[-1]+params['diff2']
+
+    broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
+    broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+
+    M = np.empty((5,len(x)))
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+
+    M[1] = diskmodelb 
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[3] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(y)
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
+    print(amps)
+    narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
+    broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
+    #model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0)
+    return np.sum((diskmodelb * amps[1],diskmodel*amps[-1]),axis=0),broadmodel,narrowmodel
 
 
 def model_linefit_circ_broad(theta, w, y, yerr, lines, fixed, fitted):
@@ -425,6 +483,68 @@ def model_linefit_circ_broad(theta, w, y, yerr, lines, fixed, fitted):
         narrowmodel+=line*amp
     model = np.sum((diskmodel*amps[-1],narrowmodel),axis=0)
     return model
+
+def model_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, linesin, fixed, fitted):
+    """
+    Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, find the best fit amplitudes for the disk and the narrow lines, and return the full model as an array.
+    Inputs
+    theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
+    x: wavelengths (observed)
+    y: measured fluxes
+    yerr: flux uncertainties
+    lines: list of narrow emission line wavelengths to be included in the model 
+    fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+    fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
+
+    Output:
+    model: array of model fluxes corresponding to the input wavelengths
+    """
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed}
+    x = w/(1+params['z'])
+    lines = np.copy(linesin)
+    params['t0'] = np.exp(params['t0'])
+    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth3'],np.ones(2)*params['broadwidth2'])) 
+    lines = np.copy(linesin)
+    ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
+    lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
+    lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
+    lines[-2] = lines[-2]+params['diff']
+    lines[-1] = lines[-1]+params['diff']
+    lines[-4] = lines[-2]+params['diff2']
+    lines[-3] = lines[-1]+params['diff2']
+
+    broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
+    broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+
+    M = np.empty((5,len(x)))
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+
+    M[1] = diskmodelb 
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[3] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(y)
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
+    print(amps)
+    narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
+    broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0)
+    return model
+
+
 
 def model_linefit_circ_freeratio_twocompnarrow(theta, w, y, yerr, linesin, fixed, fitted):
     """
@@ -1238,6 +1358,69 @@ def loglikelihood_circ_freeratio_twocompnarrow_lq(theta, w, y, yerr, linesin, fi
     print(np.sum(chi**2))
     return chi
 
+def loglikelihood_circ_freeratio_twocompnarrow_twocompbroad_lq(theta, w, y, yerr, linesin, fixed, fitted):
+    """
+    Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, solve for the best fit amplitudes for the disk and the narrow lines, and return the log likelihood of the data minus the model.
+
+    Inputs
+    theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
+    w: wavelengths (observed)
+    y: measured fluxes
+    yerr: flux uncertainties
+    lines: list of narrow emission line wavelengths to be included in the model 
+    fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+    fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
+    
+    Output
+    model: float, the log likelihood of the data given the model.
+    """
+
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed}
+    x = w/(1+params['z'])
+    lines = np.copy(linesin)
+    params['t0'] = np.exp(params['t0'])
+    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth2'],np.ones(2)*params['broadwidth3'])) 
+    lines = np.copy(linesin)
+    ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
+    lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
+    lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
+    lines[-2] = lines[-2]+params['diff']
+    lines[-1] = lines[-1]+params['diff']
+    lines[-4] = lines[-2]+params['diff2']
+    lines[-3] = lines[-1]+params['diff2']
+
+    broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
+    broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+
+    M = np.empty((5,len(x)))
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+
+    M[1] = diskmodelb 
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[3] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(y)
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10) 
+    narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
+    broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0) 
+    chi = (y-model)/yerr  
+    print(np.sum(chi**2))
+    return chi
+
 
 def loglikelihood_circ_freeratio_twocompnarrow_nobroad_lq(theta, w, y, yerr, linesin, fixed, fitted):
     """
@@ -1285,6 +1468,71 @@ def loglikelihood_circ_freeratio_twocompnarrow_nobroad_lq(theta, w, y, yerr, lin
     chi = (y-model)/yerr  
     print(np.sum(chi**2))
     return chi
+
+
+
+
+def loglikelihood_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, linesin, fixed, fitted):
+    """
+    Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, solve for the best fit amplitudes for the disk and the narrow lines, and return the log likelihood of the data minus the model.
+
+    Inputs
+    theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary)
+    w: wavelengths (observed)
+    y: measured fluxes
+    yerr: flux uncertainties
+    lines: list of narrow emission line wavelengths to be included in the model 
+    fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+    fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
+    
+    Output
+    model: float, the log likelihood of the data given the model.
+    """
+
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed}
+    x = w/(1+params['z'])
+    lines = np.copy(linesin)
+    params['t0'] = np.exp(params['t0'])
+    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth2'],np.ones(2)*params['broadwidth3'])) 
+    lines = np.copy(linesin)
+    ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
+    lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
+    lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
+    lines[-2] = lines[-2]+params['diff']
+    lines[-1] = lines[-1]+params['diff']
+    lines[-4] = lines[-2]+params['diff2']
+    lines[-3] = lines[-1]+params['diff2']
+
+    broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
+    broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+
+    M = np.empty((5,len(x)))
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+
+    M[1] = diskmodelb 
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[3] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(y)
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10) 
+    narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
+    broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0) 
+    sigma2 = yerr**2  
+    return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
 
 
@@ -2284,8 +2532,123 @@ class logprob_circ_freeratio_twocompnarrow_lq(object):
         '''
         diskout,broadout,narrowout = plot_linefit_circ_freeratio_twocompnarrow(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
         return diskout,broadout,narrowout
- 
 
+class logprob_circ_freeratio_twocompnarrow_twocompbroad(object):
+    '''
+    A class to return the log probability of a circular disk model using the corresponding log likelihood and log prior functions. The initialization function takes the observed wavelengths (x), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It also takes a list of minimum values, and a list of maximum values, which should correspond to the parameters listed in the 'fitted' dictionary.
+    '''
+    def __init__(self, x, y, yerr, lines, fixed, fitted, mins, maxes): 
+        '''
+        Inputs 
+            x: wavelengths (observed)
+            y: measured fluxes
+            yerr: flux uncertainties
+            lines: list of narrow emission line wavelengths to be included in the model 
+            fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+            fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
+        '''    
+        self.x = x
+        self.y = y
+        self.yerr = yerr
+        self.lines = lines
+        self.fixed = fixed
+        self.fitted = fitted
+        self.mins = mins
+        self.maxes = maxes
+        self.log_prior = log_prior(self.mins, self.maxes)
+    def __call__(self,theta):
+        '''
+        Input
+        theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary).
+        
+        Output
+        float containing sum of the log prior and the log likelihood of the data given the model.
+        '''
+        lp = self.log_prior(theta)
+        like = loglikelihood_circ_freeratio_twocompnarrow_twocompbroad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)
+        if np.any(np.isnan(like)):
+            return np.full(len(like),1e10)#+lp):
+        #    return -np.inf  
+        return like#+lp 
+    def test(self,theta):
+        '''
+        For plotting of models
+        Input
+        theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary).
+        Output:
+        Array containing the model fluxes corresponding to the given parameters
+        '''
+        modelout = model_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
+        return modelout 
+    def plot(self,theta):
+        '''
+        For plotting of models
+        Input
+        theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary).
+        Output:
+        Array containing the model fluxes corresponding to the given parameters
+        '''
+        diskout,broadout,narrowout = plot_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
+        return diskout,broadout,narrowout
+ 
+class logprob_circ_freeratio_twocompnarrow_twocompbroad_lq(object):
+    '''
+    A class to return the log probability of a circular disk model using the corresponding log likelihood and log prior functions. The initialization function takes the observed wavelengths (x), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It also takes a list of minimum values, and a list of maximum values, which should correspond to the parameters listed in the 'fitted' dictionary.
+    '''
+    def __init__(self, x, y, yerr, lines, fixed, fitted, mins, maxes): 
+        '''
+        Inputs 
+            x: wavelengths (observed)
+            y: measured fluxes
+            yerr: flux uncertainties
+            lines: list of narrow emission line wavelengths to be included in the model 
+            fixed: dictionary of fixed disk parameters (parameter labels: parameter values)
+            fitted: dictionary of fitted disk parameters (parameter labels: parameter values) The values in this dictionary will be updated to the array values carried in theta.
+        '''    
+        self.x = x
+        self.y = y
+        self.yerr = yerr
+        self.lines = lines
+        self.fixed = fixed
+        self.fitted = fitted
+        self.mins = mins
+        self.maxes = maxes
+        self.log_prior = log_prior(self.mins, self.maxes)
+    def __call__(self,theta):
+        '''
+        Input
+        theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary).
+        
+        Output
+        float containing sum of the log prior and the log likelihood of the data given the model.
+        '''
+        lp = self.log_prior(theta)
+        like = loglikelihood_circ_freeratio_twocompnarrow_twocompbroad_lq(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)
+        if np.any(np.isnan(like)):
+            return np.full(len(like),1e10)#+lp):
+        #    return -np.inf  
+        return like#+lp 
+    def test(self,theta):
+        '''
+        For plotting of models
+        Input
+        theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary).
+        Output:
+        Array containing the model fluxes corresponding to the given parameters
+        '''
+        modelout = model_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
+        return modelout 
+    def plot(self,theta):
+        '''
+        For plotting of models
+        Input
+        theta: np.array containing updated fitted disk parameters (corresponding to the labels in the fitted dictionary).
+        Output:
+        Array containing the model fluxes corresponding to the given parameters
+        '''
+        diskout,broadout,narrowout = plot_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
+        return diskout,broadout,narrowout
+ 
 
 class logprob_circ_freeratio_lq(object):
     '''
