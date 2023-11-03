@@ -56,23 +56,31 @@ def plot_linefit_circ_fixeddoublet(theta, w, y, yerr, lines, fixed, fitted):
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed}
     x = w/(1+params['z'])
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
-    widths = np.ones(len(lines))*params['narrowwidth']
-    lineprofs = utils.build_doublet_profiles(x,lines,params['narrowwidth'],params['ratios'])
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
+    lineprofs1 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[:len(lines)],params['ratios'])   
+    lineprofs2 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[len(lines):2*len(lines)],params['ratios'])    
     M = np.empty((len(params['ratios'])+2,len(x)))
     M[0] = np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
-    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(widths),2)):
-        
+    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(lines),2)):        
         M[p+1] = np.sum((np.exp(-0.5*((x-lines[i])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[i+1])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+    M[0] = np.sum((M[0]/params['narrowfrac'],np.exp(-0.5*((x-lines[0])/(widths[len(lines)]))**2)),axis=0)
+    for p,i in zip(range(len(params['ratios'])),np.arange(len(lines)+1,2*len(lines),2)):        
+        M[p+1] = np.sum((M[p+1]/params['narrowfrac'],np.exp(-0.5*((x-lines[1+2*p])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[1+2*p])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+
     Cinv = np.eye(x.shape[0])*(1/yerr**2)
     M[-1] = diskmodel 
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
     amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10) 
-    narrowmodel = lineprofs[0] * amps[0]
-    for line,amp in zip(lineprofs[1:],amps[1:-1]):
-        narrowmodel+=line*amp 
+    narrowmodel1 = lineprofs1[0] * amps[0]
+    for line,amp in zip(lineprofs1[1:],amps[1:-1]):
+        narrowmodel1+=line*amp 
+    narrowmodel2 = lineprofs2[0] * amps[0]
+    for line,amp in zip(lineprofs2[1:],amps[1:-1]):
+        narrowmodel2+=line*amp 
+    narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
     diskout = diskmodel*amps[-1]
     return diskout,narrowmodel
 
@@ -129,11 +137,42 @@ def model_linefit_circ_fixeddoublet(theta, w, y, yerr, lines, fixed, fitted):
     Output:
     model: array of model fluxes corresponding to the input wavelengths
     """
+    
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed}
     x = w/(1+params['z'])
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
+    lineprofs1 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[:len(lines)],params['ratios'])   
+    lineprofs2 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[len(lines):2*len(lines)],params['ratios'])    
+    M = np.empty((len(params['ratios'])+2,len(x)))
+    M[0] = np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(lines),2)):        
+        M[p+1] = np.sum((np.exp(-0.5*((x-lines[i])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[i+1])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+    M[0] = np.sum((M[0]/params['narrowfrac'],np.exp(-0.5*((x-lines[0])/(widths[len(lines)]))**2)),axis=0)
+    for p,i in zip(range(len(params['ratios'])),np.arange(len(lines)+1,2*len(lines),2)):        
+        M[p+1] = np.sum((M[p+1]/params['narrowfrac'],np.exp(-0.5*((x-lines[1+2*p])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[1+2*p])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(y)
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10) 
+    narrowmodel1 = lineprofs1[0] * amps[0]
+    for line,amp in zip(lineprofs1[1:],amps[1:-1]):
+        narrowmodel1+=line*amp 
+    narrowmodel2 = lineprofs2[0] * amps[0]
+    for line,amp in zip(lineprofs2[1:],amps[1:-1]):
+        narrowmodel2+=line*amp 
+    narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
+    diskout = diskmodel*amps[-1]
+    '''
+    fitted = dict(zip(fitted.keys(),theta)) 
+    params = {**fitted, **fixed}
+    x = w/(1+params['z'])
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
     widths = np.ones(len(lines))*params['narrowwidth']
     lineprofs = utils.build_doublet_profiles(x,lines,params['narrowwidth'],params['ratios'])
     M = np.empty((len(params['ratios'])+2,len(x)))
@@ -149,6 +188,7 @@ def model_linefit_circ_fixeddoublet(theta, w, y, yerr, lines, fixed, fitted):
     for line,amp in zip(lineprofs[1:],amps[1:-1]):
         narrowmodel+=line*amp 
     diskout = diskmodel*amps[-1]
+    '''
     model = np.sum((diskout,narrowmodel),axis=0)
     return model
 
@@ -306,9 +346,9 @@ def plot_linefit_circ_freeratio_twocompnarrow_nobroad(theta, w, y, yerr, linesin
     x = w/(1+params['z'])
     lines = np.copy(linesin)
     params['t0'] = np.exp(params['t0'])
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
-    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x) 
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x) 
     widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
@@ -409,19 +449,43 @@ def plot_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, li
     diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
     diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
 
-    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth3'],np.ones(2)*params['broadwidth2'])) 
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(1)*params['broadwidth3b'],np.ones(1)*params['broadwidth3'],np.ones(1)*params['broadwidth2b'],np.ones(1)*params['broadwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
     lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
     lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
-    lines[-2] = lines[-2]+params['diff']
+    lines[-2] = lines[-2]+params['diffb']
     lines[-1] = lines[-1]+params['diff']
-    lines[-4] = lines[-2]+params['diff2']
-    lines[-3] = lines[-1]+params['diff2']
+    lines[-4] = lines[-4]+params['diff2b']
+    lines[-3] = lines[-3]+params['diff2']
 
     broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
     broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+    M = np.empty((4,len(x)))
+    '''
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+    '''
+    M[0] = diskmodelb 
+    M[1] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+    amps0 = params['amps0']#0.11217721
+    narrowmodel = np.sum((lineprofs1 * amps0 ,params['narrowfrac']*lineprofs2 * amps0),axis=0)
 
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(np.sum((y,-narrowmodel),axis=0))
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
+    print('plot',amps,widths)
+
+    broadmodel = np.sum((broadlineprofs[0] * amps[1]*params['broadfrac'],broadlineprofs[1]*amps[1],broadlineprofs2[0] * amps[2]*params['broadfrac'],broadlineprofs2[1]*amps[2]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[0],broadmodel),axis=0),narrowmodel),axis=0)
+    '''
     M = np.empty((5,len(x)))
     M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
     for i in range(1,len(lines)-5):
@@ -443,7 +507,8 @@ def plot_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, li
     narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
     broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
     #model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0)
-    return np.sum((diskmodelb * amps[1],diskmodel*amps[-1]),axis=0),broadmodel,narrowmodel
+    '''
+    return np.sum((diskmodelb * amps[0],diskmodel*amps[-1]),axis=0),broadmodel,narrowmodel
 
 
 def model_linefit_circ_broad(theta, w, y, yerr, lines, fixed, fitted):
@@ -507,41 +572,42 @@ def model_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, l
     xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
     diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
     diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
-
-    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth3'],np.ones(2)*params['broadwidth2'])) 
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(1)*params['broadwidth3b'],np.ones(1)*params['broadwidth3'],np.ones(1)*params['broadwidth2b'],np.ones(1)*params['broadwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
     lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
     lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
-    lines[-2] = lines[-2]+params['diff']
+    lines[-2] = lines[-2]+params['diffb']
     lines[-1] = lines[-1]+params['diff']
-    lines[-4] = lines[-2]+params['diff2']
-    lines[-3] = lines[-1]+params['diff2']
+    lines[-4] = lines[-4]+params['diff2b']
+    lines[-3] = lines[-3]+params['diff2']
 
     broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
     broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
 
-    M = np.empty((5,len(x)))
+    M = np.empty((4,len(x)))
+    '''
     M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
     for i in range(1,len(lines)-5):
         M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
     #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
     for i in range(0,len(lines)-5):
         M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
-
-    M[1] = diskmodelb 
-    M[2] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
-    M[3] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
-
+    '''
+    M[0] = diskmodelb 
+    M[1] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+    amps0 = params['amps0']#0.11217721
+    narrowmodel = np.sum((lineprofs1 * amps0 ,params['narrowfrac']*lineprofs2 * amps0),axis=0)
     Cinv = np.eye(x.shape[0])*(1/yerr**2)
     M[-1] = diskmodel 
-    lhs = M@Cinv@(y)
+    lhs = M@Cinv@(np.sum((y,-narrowmodel),axis=0))
     rhs = M@Cinv@M.T
     amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
-    print(amps)
-    narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
-    broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
-    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0)
+    print('model',amps)
+  
+    broadmodel = np.sum((broadlineprofs[0] * amps[1]*params['broadfrac'],broadlineprofs[1]*amps[1],broadlineprofs2[0] * amps[2]*params['broadfrac'],broadlineprofs2[1]*amps[2]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[0],broadmodel),axis=0),narrowmodel),axis=0)
     return model
 
 
@@ -618,9 +684,9 @@ def model_linefit_circ_freeratio_twocompnarrow_nobroad(theta, w, y, yerr, linesi
     x = w/(1+params['z'])
     lines = np.copy(linesin)
     params['t0'] = np.exp(params['t0'])
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
-    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
     widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
@@ -1022,23 +1088,31 @@ def loglikelihood_circ_fixeddoublet_lq(theta, w, y, yerr, lines, fixed, fitted):
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed}
     x = w/(1+params['z'])
-    #angi = (phases + 90) % (90) 
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1']
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)  
-    widths = np.ones(len(lines))*params['narrowwidth']
-    lineprofs = utils.build_doublet_profiles(x,lines,params['narrowwidth'],params['ratios'])
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
+    lineprofs1 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[:len(lines)],params['ratios'])   
+    lineprofs2 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[len(lines):2*len(lines)],params['ratios'])    
     M = np.empty((len(params['ratios'])+2,len(x)))
     M[0] = np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
-    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(widths),2)):
+    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(lines),2)):        
         M[p+1] = np.sum((np.exp(-0.5*((x-lines[i])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[i+1])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+    M[0] = np.sum((M[0]/params['narrowfrac'],np.exp(-0.5*((x-lines[0])/(widths[len(lines)]))**2)),axis=0)
+    for p,i in zip(range(len(params['ratios'])),np.arange(len(lines)+1,2*len(lines),2)):        
+        M[p+1] = np.sum((M[p+1]/params['narrowfrac'],np.exp(-0.5*((x-lines[1+2*p])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[1+2*p])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+
     Cinv = np.eye(x.shape[0])*(1/yerr**2)
     M[-1] = diskmodel 
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
     amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10) 
-    narrowmodel = lineprofs[0] * amps[0]
-    for line,amp in zip(lineprofs[1:],amps[1:-1]):
-        narrowmodel+=line*amp 
+    narrowmodel1 = lineprofs1[0] * amps[0]
+    for line,amp in zip(lineprofs1[1:],amps[1:-1]):
+        narrowmodel1+=line*amp 
+    narrowmodel2 = lineprofs2[0] * amps[0]
+    for line,amp in zip(lineprofs2[1:],amps[1:-1]):
+        narrowmodel2+=line*amp 
+    narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
     diskout = diskmodel*amps[-1]
     model = np.sum((diskout,narrowmodel),axis=0)
     chi = (y-model)/yerr  
@@ -1105,23 +1179,31 @@ def loglikelihood_circ_fixeddoublet(theta, w, y, yerr, lines, fixed, fitted):
     fitted = dict(zip(fitted.keys(),theta)) 
     params = {**fitted, **fixed}
     x = w/(1+params['z'])
-    #angi = (phases + 90) % (90) 
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1']
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)  
-    widths = np.ones(len(lines))*params['narrowwidth']
-    lineprofs = utils.build_doublet_profiles(x,lines,params['narrowwidth'],params['ratios'])
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
+    lineprofs1 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[:len(lines)],params['ratios'])   
+    lineprofs2 = utils.build_doublet_profiles(x,lines[:len(lines)],widths[len(lines):2*len(lines)],params['ratios'])    
     M = np.empty((len(params['ratios'])+2,len(x)))
     M[0] = np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
-    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(widths),2)):
+    for p,i in zip(range(len(params['ratios'])),np.arange(1,len(lines),2)):        
         M[p+1] = np.sum((np.exp(-0.5*((x-lines[i])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[i+1])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+    M[0] = np.sum((M[0]/params['narrowfrac'],np.exp(-0.5*((x-lines[0])/(widths[len(lines)]))**2)),axis=0)
+    for p,i in zip(range(len(params['ratios'])),np.arange(len(lines)+1,2*len(lines),2)):        
+        M[p+1] = np.sum((M[p+1]/params['narrowfrac'],np.exp(-0.5*((x-lines[1+2*p])/(widths[i]))**2),params['ratios'][p]*np.exp( (x-lines[1+2*p])**2 * (-0.5/widths[i+1]**2) )),axis=0)
+
     Cinv = np.eye(x.shape[0])*(1/yerr**2)
     M[-1] = diskmodel 
     lhs = M@Cinv@(y)
     rhs = M@Cinv@M.T
     amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10) 
-    narrowmodel = lineprofs[0] * amps[0]
-    for line,amp in zip(lineprofs[1:],amps[1:-1]):
-        narrowmodel+=line*amp 
+    narrowmodel1 = lineprofs1[0] * amps[0]
+    for line,amp in zip(lineprofs1[1:],amps[1:-1]):
+        narrowmodel1+=line*amp 
+    narrowmodel2 = lineprofs2[0] * amps[0]
+    for line,amp in zip(lineprofs2[1:],amps[1:-1]):
+        narrowmodel2+=line*amp 
+    narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
     diskout = diskmodel*amps[-1]
     model = np.sum((diskout,narrowmodel),axis=0)
     sigma2 = yerr**2  
@@ -1332,8 +1414,8 @@ def loglikelihood_circ_freeratio_twocompnarrow_lq(theta, w, y, yerr, linesin, fi
     widths = np.hstack((np.ones(len(lines)-2)*params['narrowwidth'],np.ones(len(lines)-2)*params['narrowwidth2'],np.ones(2)*params['broadwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
-    lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-2],widths[:len(lines)-2],ratios)   
-    lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-2],widths[len(lines)-2:2*len(lines)-2],ratios)   
+    lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-2],widths[:len(lines)-2],params['ratios'])   
+    lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-2],widths[len(lines)-2:2*len(lines)-2],params['ratios'])   
     lines[-2] = lines[-2]+params['diff']
     lines[-1] = lines[-1]+params['diff']
     broadlineprofs = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
@@ -1383,20 +1465,43 @@ def loglikelihood_circ_freeratio_twocompnarrow_twocompbroad_lq(theta, w, y, yerr
     xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
     diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
     diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
-
-    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth2'],np.ones(2)*params['broadwidth3'])) 
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(1)*params['broadwidth3b'],np.ones(1)*params['broadwidth3'],np.ones(1)*params['broadwidth2b'],np.ones(1)*params['broadwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
     lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
     lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
-    lines[-2] = lines[-2]+params['diff']
+    lines[-2] = lines[-2]+params['diffb']
     lines[-1] = lines[-1]+params['diff']
-    lines[-4] = lines[-2]+params['diff2']
-    lines[-3] = lines[-1]+params['diff2']
+    lines[-4] = lines[-4]+params['diff2b']
+    lines[-3] = lines[-3]+params['diff2']
 
     broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
     broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+    
+    M = np.empty((4,len(x)))
+    '''
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+    '''
+    M[0] = diskmodelb 
+    M[1] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+    amps0 = params['amps0']#0.11217721
+    narrowmodel = np.sum((lineprofs1 * amps0 ,params['narrowfrac']*lineprofs2 * amps0),axis=0)
 
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(np.sum((y,-narrowmodel),axis=0))
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
+     
+    broadmodel = np.sum((broadlineprofs[0] * amps[1]*params['broadfrac'],broadlineprofs[1]*amps[1],broadlineprofs2[0] * amps[2]*params['broadfrac'],broadlineprofs2[1]*amps[2]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[0],broadmodel),axis=0),narrowmodel),axis=0)
+    '''
     M = np.empty((5,len(x)))
     M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
     for i in range(1,len(lines)-5):
@@ -1417,8 +1522,9 @@ def loglikelihood_circ_freeratio_twocompnarrow_twocompbroad_lq(theta, w, y, yerr
     narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
     broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
     model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0) 
+    '''
     chi = (y-model)/yerr  
-    print(np.sum(chi**2))
+    print(np.sum(chi**2),amps)
     return chi
 
 
@@ -1443,9 +1549,9 @@ def loglikelihood_circ_freeratio_twocompnarrow_nobroad_lq(theta, w, y, yerr, lin
     x = w/(1+params['z'])
     lines = np.copy(linesin)
     params['t0'] = np.exp(params['t0'])
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
-    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1'] 
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
     widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
@@ -1497,20 +1603,42 @@ def loglikelihood_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, l
     xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1'] 
     diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)
     diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
-
-    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(2)*params['broadwidth2'],np.ones(2)*params['broadwidth3'])) 
+    widths = np.hstack((np.ones(len(lines)-4)*params['narrowwidth'],np.ones(len(lines)-4)*params['narrowwidth2'],np.ones(1)*params['broadwidth3b'],np.ones(1)*params['broadwidth3'],np.ones(1)*params['broadwidth2b'],np.ones(1)*params['broadwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
     lineprofs1 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[:len(lines)-4],ratios)   
     lineprofs2 = utils.build_fixedratio_profiles(x,lines[:len(lines)-4],widths[len(lines)-4:2*len(lines)-4],ratios)   
-    lines[-2] = lines[-2]+params['diff']
+    lines[-2] = lines[-2]+params['diffb']
     lines[-1] = lines[-1]+params['diff']
-    lines[-4] = lines[-2]+params['diff2']
-    lines[-3] = lines[-1]+params['diff2']
+    lines[-4] = lines[-4]+params['diff2b']
+    lines[-3] = lines[-3]+params['diff2']
 
     broadlineprofs = utils.build_line_profiles(x,lines[-4:-2],widths[-4:-2]) 
     broadlineprofs2 = utils.build_line_profiles(x,lines[-2:],widths[-2:]) 
+    M = np.empty((4,len(x)))
+    '''
+    M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
+    for i in range(1,len(lines)-5):
+        M[0] = np.sum((M[0],ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i]))**2)),axis=0)
+    #M[1] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[len(lines)-2]))**2)
+    for i in range(0,len(lines)-5):
+        M[0] = np.sum((M[0],params['narrowfrac']*ratios[i]*np.exp(-0.5*((x-lines[i])/(widths[i+len(lines)-2]))**2)),axis=0)
+    '''
+    M[0] = diskmodelb 
+    M[1] = np.sum((np.exp(-0.5*((x-lines[-3])/(widths[-3]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-4])/(widths[-4]))**2)),axis=0)  
+    M[2] = np.sum((np.exp(-0.5*((x-lines[-1])/(widths[-1]))**2 ),params['broadfrac']*np.exp(-0.5*((x-lines[-2])/(widths[-2]))**2)),axis=0)  
+    amps0 = params['amps0']#0.11217721
+    narrowmodel = np.sum((lineprofs1 * amps0 ,params['narrowfrac']*lineprofs2 * amps0),axis=0)
 
+    Cinv = np.eye(x.shape[0])*(1/yerr**2)
+    M[-1] = diskmodel 
+    lhs = M@Cinv@(np.sum((y,-narrowmodel),axis=0))
+    rhs = M@Cinv@M.T
+    amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
+     
+    broadmodel = np.sum((broadlineprofs[0] * amps[1]*params['broadfrac'],broadlineprofs[1]*amps[1],broadlineprofs2[0] * amps[2]*params['broadfrac'],broadlineprofs2[1]*amps[2]),axis=0)   
+    model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[0],broadmodel),axis=0),narrowmodel),axis=0)
+    '''
     M = np.empty((5,len(x)))
     M[0] = ratios[0]*np.exp(-0.5*((x-lines[0])/(widths[0]))**2)
     for i in range(1,len(lines)-5):
@@ -1531,6 +1659,7 @@ def loglikelihood_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, l
     narrowmodel = np.sum((lineprofs1 * amps[0] ,params['narrowfrac']*lineprofs2 * amps[0]),axis=0)
     broadmodel = np.sum((broadlineprofs[0] * amps[2]*params['broadfrac'],broadlineprofs[1]*amps[2],broadlineprofs2[0] * amps[3]*params['broadfrac'],broadlineprofs2[1]*amps[3]),axis=0)   
     model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[1],broadmodel),axis=0),narrowmodel),axis=0) 
+    '''
     sigma2 = yerr**2  
     return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
@@ -1657,9 +1786,9 @@ def loglikelihood_circ_freeratio_twocompnarrow_nobroad(theta, w, y, yerr, linesi
     x = w/(1+params['z']) 
     lines = np.copy(linesin)
     params['t0'] = np.exp(params['t0'])
-    xib0 = (params['xi2']*params['xi1']-params['xi1'])*params['xib']+params['xi1']
-    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi1']*params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)   
-    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi1b']*params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
+    xib0 = (params['xi2']-params['xi1'])*params['xib']+params['xi1']
+    diskmodel = profilecirc.profile(params['maxstep'],params['xi1'],params['xi2'],params['broad'],params['q1'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambda'],params['npix'],x)   
+    diskmodelb = profilecirc.profile(params['maxstep'],params['xi1b'],params['xi2b'],params['broad'],params['q1b'],params['q2'],xib0,params['angi']%180,params['anglam'],params['t0'],params['eta'],params['version'],params['amp'],params['narms'],params['aobs']%360,params['pitch'],params['width'],params['xispin'],params['xispout'],params['nstep'],params['relativistic'],params['olambdab'],params['npix'],x)
     widths = np.hstack((np.ones(len(lines))*params['narrowwidth'],np.ones(len(lines))*params['narrowwidth2'])) 
     lines = np.copy(linesin)
     ratios = np.asfarray([1.0,params['NIIb_Halpha']/params['NIIb_NIIa'],params['NIIb_Halpha'],params['SIIb_Halpha']/params['SIIb_SIIa'],params['SIIb_Halpha'],params['OIb_Halpha']/params['OIb_OIa'],params['OIb_Halpha'],params['OIIIb_Hbeta']*params['Halpha_Hbeta']/params['OIIIb_OIIIa'],params['OIIIb_Hbeta']*params['Halpha_Hbeta'],1/params['Halpha_Hbeta']]) 
@@ -2567,9 +2696,9 @@ class logprob_circ_freeratio_twocompnarrow_twocompbroad(object):
         lp = self.log_prior(theta)
         like = loglikelihood_circ_freeratio_twocompnarrow_twocompbroad(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)
         if np.any(np.isnan(like)):
-            return np.full(len(like),1e10)#+lp):
-        #    return -np.inf  
-        return like#+lp 
+            #return np.full(len(like),1e10)#+lp):
+            return -np.inf  
+        return like+lp 
     def test(self,theta):
         '''
         For plotting of models
