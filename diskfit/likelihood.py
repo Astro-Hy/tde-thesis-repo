@@ -481,7 +481,7 @@ def plot_linefit_circ_freeratio_twocompnarrow_twocompbroad(theta, w, y, yerr, li
     lhs = M@Cinv@(np.sum((y,-narrowmodel),axis=0))
     rhs = M@Cinv@M.T
     amps = np.clip(np.linalg.solve(rhs,lhs),a_min=0.0, a_max=1e10)
-    print('plot',amps,widths)
+    print('plot amplitudes',amps,params['narrowfrac'],widths,lines)
 
     broadmodel = np.sum((broadlineprofs[0] * amps[1]*params['broadfrac'],broadlineprofs[1]*amps[1],broadlineprofs2[0] * amps[2]*params['broadfrac'],broadlineprofs2[1]*amps[2]),axis=0)   
     model = np.sum((np.sum((diskmodel*amps[-1],diskmodelb*amps[0],broadmodel),axis=0),narrowmodel),axis=0)
