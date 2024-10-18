@@ -26,6 +26,10 @@ The log likelihood functions available in the diskfit module rely on the input o
 
 'narrowwidth': The width of the narrow emission lines in Angstroms
 
+'narrowwidth2': For the double Gaussian narrow line models, the width of the second component
+
+'narrowfrac': Ratio between the two narrow line components, if being used
+ 
 ### For the Gaussian broad line model:
 #### Parameters which can either be fitted or fixed:
 'broadlam': The central rest wavelength of the Gaussian broadline
@@ -90,6 +94,7 @@ Spiral arms:
 'narms': number of arms (integer)
 
 'npix' = integer number of wavelength points (the size of the wavelength array)
+
 
 ### For the elliptical disk model:
 #### Parameters which can either be fitted or fixed:
