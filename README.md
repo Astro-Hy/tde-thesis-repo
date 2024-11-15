@@ -1,17 +1,47 @@
 # Diskfit
 
-A package to fit circular and elliptical accretion disk models to double-peaked broad line AGN spectra. It can also fit simple Gaussian broad line models.  
+A package to fit circular and elliptical accretion disk models to double-peaked broad line AGN spectra. It can also fit simple Gaussian broad line models.
+
+## Dependencies
+
+Essential dependencies:
+ - Python < 3.12
+ - `numpy` > 1.22.2
+ - `setuptools` < 74
+ - `scipy`
+ - `emcee`
+ - `matplotlib`
+ - fortran compiler (e.g. `gfortran`)
+
+Optional dependencies:
+ - `ptemcee`
+ - `ultranest`
+
+### Recommended Anaconda Environment
+
+The `conda` environment file `environment.yaml` contains the recommended environment for running the code.
+
+On Princeton clusters we recommend using the system anaconda which is available by running:
+
+`module load anaconda3/2024.6`
+
+To create the environment, run:
+
+`conda env create -f environment.yaml`
+
+To activate the environment, run:
+
+`conda activate diskfit`
 
 ## Installation
-Essential dependencies: numpy version>1.22.2, a fortran compiler such as gfortran, scipy, emcee, matplotlib. Optional dependencies: ptemcee, ultranest. 
 
 To install: clone this repo, move to the top directory of the package, and run:
 
-pip install .
+`pip install .`
 
 Some notes on the installation:
 	I am hoping the automated installation works correctly on different machines, but I'm very much in the testing phase here - any feedback very welcome!
-	The pip install undergoes two installation steps. In the first step it installs the python module, and in the second step it compiles the fortran code. The pip install command may first give the warning 'ERROR: Failed building wheel for diskfit' before reinstalling successfully. I'm working on a fix for this but in the meantime, the best way to check that the install worked correctly is to run either the circular or elliptical disk fitting example jupyter notebooks in the 'examples' directory. 
+	The pip install undergoes two installation steps. In the first step it installs the python module, and in the second step it compiles the fortran code. The pip install command may first give the warning 'ERROR: Failed building wheel for diskfit' before reinstalling successfully. I'm working on a fix for this but in the meantime, the best way to check that the install worked correctly is to run either the circular or elliptical disk fitting example jupyter notebooks in the 'examples' directory.
 
 If you encounter errors importing the diskmodels module, something has gone wrong with the f2py fortran compilation. If you have issues importing the diskfit module, something has gone wrong with the python installation. If you run into troubles I'm happy to help!
 
@@ -29,7 +59,7 @@ The log likelihood functions available in the diskfit module rely on the input o
 'narrowwidth2': For the double Gaussian narrow line models, the width of the second component
 
 'narrowfrac': Ratio between the two narrow line components, if being used
- 
+
 ### For the Gaussian broad line model:
 #### Parameters which can either be fitted or fixed:
 'broadlam': The central rest wavelength of the Gaussian broadline
@@ -119,7 +149,7 @@ Spiral arms:
 'phi0': major axis orientation (0-360 deg)
 
 #### Parameters which must be fixed:
-'smooth' = 'y'#smoothly varying eccentricity (y/n)[n] 
+'smooth' = 'y'#smoothly varying eccentricity (y/n)[n]
 
 'wavemin': minimum rest wavelength (Angstrom)
 
@@ -158,7 +188,7 @@ wl = np.asarray(wl[indwave],dtype=np.float64)
 flux = flux[indwave]
 fluxerr = fluxerr[indwave]
 npix = wl.shape[0]
-``` 
+```
 
 ### Setting uniform priors
 The likelihood function currently supports a uniform prior for the fitted parameters. These are provided by two lists, one containing the minimum and one containing the maximum allowed values for each of the fitted parameters in order, e.g.
@@ -176,9 +206,9 @@ zmax=1.01*z
 diskmins = [xi1min,xi2min,broadmin,angimin,zmin]
 diskmax = [xi1max,xi2max,broadmax,angimax,zmax]
 ```
- 
+
 ### Solving for narrow line and diskmodel amplitudes
- 
+
 The log likelihood functions automatically solve the linear equation for the best fit amplitudes of the narrow lines and the broad line after calculating the disk model for the given parameters. The only requirement from the user is to specify the wavelength of the desired lines as follows:
 ```
 NIIa = 6549.86
@@ -201,8 +231,8 @@ lp = likelihood.logprob_ell(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes
 lp = likelihood.logprob_broad(wl, flux, fluxerr, lines, fixed, fitted, mins, maxes)
 ```
 
-where the inputs are:   
-    
+where the inputs are:
+
     wl: wavelengths (observed)
 
     flux: measured fluxes
