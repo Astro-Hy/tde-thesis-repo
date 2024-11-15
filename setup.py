@@ -4,7 +4,9 @@ from numpy.distutils.core import setup as npsetup
 install_requires = [
     "numpy>=1.22.2",
     "scipy",
+    "setuptools<74"
 ]
+python_requires="<3.12"
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -30,6 +32,7 @@ if __name__ == '__main__':
         "url": "https://github.com/charlotteaward/Diskfit",
         "keywords": ["astro", "AGN", "spectra", "disk"],
         "install_requires": install_requires,
+        "python_requires": python_requires,
         "zip_safe": False,
     })
 
