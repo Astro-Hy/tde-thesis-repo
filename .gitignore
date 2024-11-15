@@ -1,0 +1,19 @@
+# Python cache
+__pycache__
+
+# Build files
+build
+diskmodels
+diskfit.egg-info
+diskfit/*-f2pywrappers.f
+diskfit/*module.c
+
+# Example outputs
+examples/emcee.h5
+
+# Mac OS metadata
+.DS_Store
+
+# editor temp files
+*~
+*.swp
