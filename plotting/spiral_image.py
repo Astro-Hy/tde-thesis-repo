@@ -131,6 +131,6 @@ ax.plot(XOUT, YOUT, color='white', lw=2)
 # Add labels and title
 ax.set_xlabel('x (GM/c^2)')
 ax.set_ylabel('y (GM/c^2)')
-ax.set_title('Spiral Disk with Arms')
-
+#ax.set_title('Spiral Disk with Arms')
+fig.tight_layout()
 plt.savefig('spiralplot.png')
