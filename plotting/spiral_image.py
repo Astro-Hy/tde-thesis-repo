@@ -122,7 +122,7 @@ ax.set_ylim(YMIN, YMAX)
 
 # Plot brightness map
 c = ax.imshow(BRIGHT, extent=[XMIN, XMAX, YMIN, YMAX], origin='lower', cmap='inferno')
-fig.colorbar(c, ax=ax, label='Brightness')
+fig.colorbar(c, ax=ax, label='log brightness')
 
 # Plot the ellipses
 ax.plot(XIN, YIN, color='white', lw=2)
