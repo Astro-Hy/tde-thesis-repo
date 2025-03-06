@@ -201,7 +201,7 @@ def model_linefit_circ_fixeddoublet_freeamplitudes_Halpha(theta, w, y, yerr, lin
     model = np.sum((diskout,narrowmodel),axis=0)
     return model
 
-def model_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, broadlines, fixed, fitted):
+def model_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, linesbroad, fixed, fitted):
     """
     Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, find the best fit amplitudes for the disk and the narrow lines, and return the full model as an array.
     Inputs
@@ -241,7 +241,7 @@ def model_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w,
     model = np.sum((diskout,narrowmodel,broadmodel),axis=0)
     return model
 
-def plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, fixed, fitted):
+def plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, linesbroad,fixed, fitted):
     """
     Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, find the best fit amplitudes for the disk and the narrow lines, and return the full model as an array.
     Inputs
@@ -1742,7 +1742,7 @@ def loglikelihood_circ_fixeddoublet_freeamplitudes_Halpha(theta, w, y, yerr, lin
     return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
 
-def loglikelihood_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, fixed, fitted):
+def loglikelihood_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, linesbroad,fixed, fitted):
     """
     Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, find the best fit amplitudes for the disk and the narrow lines, and return the full model as an array.
     Inputs
@@ -3111,7 +3111,7 @@ class logprob_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(object):
     '''
     A class to return the log probability of a circular disk model using the corresponding log likelihood and log prior functions. The initialization function takes the observed wavelengths (x), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It also takes a list of minimum values, and a list of maximum values, which should correspond to the parameters listed in the 'fitted' dictionary.
     '''
-    def __init__(self, x, y, yerr, lines, fixed, fitted, mins, maxes): 
+    def __init__(self, x, y, yerr, lines, linesbroad, fixed, fitted, mins, maxes): 
         '''
         Inputs 
             x: wavelengths (observed)
@@ -3139,7 +3139,7 @@ class logprob_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(object):
         float containing sum of the log prior and the log likelihood of the data given the model.
         '''
         lp = self.log_prior(theta)
-        like = loglikelihood_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted)
+        like = loglikelihood_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.linesbroad,self.fixed, self.fitted)
         if np.any(np.isnan(like)):
             #return np.full(len(like),1e10+lp)
             return -np.inf   
@@ -3153,7 +3153,7 @@ class logprob_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(object):
         Output:
         Array containing the model fluxes corresponding to the given parameters
         '''
-        modelout = model_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
+        modelout = model_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.linesbroad, self.fixed, self.fitted) 
         return modelout 
     def plot(self,theta):
         '''
@@ -3163,7 +3163,7 @@ class logprob_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(object):
         Output:
         Array containing the model fluxes corresponding to the given parameters
         '''
-        diskout,narrowout = plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.fixed, self.fitted) 
+        diskout,narrowout = plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.linesbroad, self.fixed, self.fitted) 
         return diskout,narrowout,broadout
 
 
