@@ -234,8 +234,8 @@ def model_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w,
     narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
     diskout = diskmodel*params['diskflux']
     ampsbroad = [params['broadHalphaflux']]
-    lineprofsbroad = utils.build_line_profiles(x,linesbroad,widthsbroad)   
-    broadmodel = lineprofsbroad[0] * amps[0]
+    lineprofsbroad = utils.build_line_profiles(x,linesbroad,params['broadwidth'])   
+    broadmodel = lineprofsbroad[0] * ampsbroad[0]
     for line,amp in zip(lineprofsbroad[1:],ampsbroad[1:]):
         narrowmodel1+=line*amp 
     model = np.sum((diskout,narrowmodel,broadmodel),axis=0)
@@ -273,9 +273,9 @@ def plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, 
         narrowmodel2+=line*amp 
     narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
     diskout = diskmodel*params['diskflux']
-    ampsbroad = [params['broadflux']]
-    lineprofsbroad = utils.build_line_profiles(x,linesbroad,widthsbroad)   
-    broadmodel = lineprofsbroad[0] * amps[0]
+    ampsbroad = [params['broadHalphaflux']]
+    lineprofsbroad = utils.build_line_profiles(x,linesbroad,params['broadwidth'])   
+    broadmodel = lineprofsbroad[0] * ampsbroad[0]
     for line,amp in zip(lineprofsbroad[1:],ampsbroad[1:]):
         narrowmodel1+=line*amp 
     model = np.sum((diskout,narrowmodel,broadmodel),axis=0)
@@ -1742,7 +1742,7 @@ def loglikelihood_circ_fixeddoublet_freeamplitudes_Halpha(theta, w, y, yerr, lin
     return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
 
-def loglikelihood_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, linesbroad,fixed, fitted):
+def loglikelihood_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w, y, yerr, lines, linesbroad,fixed, fitted):
     """
     Function which takes the wavelengths (w), fluxes (y), flux errors (yerr) of a spectrum, and a set of disk parameters (as well as redshift and narrow emission line width) distributed amongst two dictionaries (fitted and fixed). It will then calculate the circular disk model given the parameters, find the best fit amplitudes for the disk and the narrow lines, and return the full model as an array.
     Inputs
@@ -1774,9 +1774,9 @@ def loglikelihood_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(t
         narrowmodel2+=line*amp 
     narrowmodel = np.sum((narrowmodel1,narrowmodel2),axis=0)
     diskout = diskmodel*params['diskflux']
-    ampsbroad = [params['broadflux']]
-    lineprofsbroad = utils.build_line_profiles(x,linesbroad,widthsbroad)   
-    broadmodel = lineprofsbroad[0] * amps[0]
+    ampsbroad = [params['broadHalphaflux']]
+    lineprofsbroad = utils.build_line_profiles(x,linesbroad,params['broadwidth'])   
+    broadmodel = lineprofsbroad[0] * ampsbroad[0]
     for line,amp in zip(lineprofsbroad[1:],ampsbroad[1:]):
         narrowmodel1+=line*amp 
     model = np.sum((diskout,narrowmodel,broadmodel),axis=0)
@@ -3125,6 +3125,7 @@ class logprob_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(object):
         self.y = y
         self.yerr = yerr
         self.lines = lines
+        self.linesbroad = linesbroad
         self.fixed = fixed
         self.fitted = fitted
         self.mins = mins
@@ -3163,7 +3164,7 @@ class logprob_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(object):
         Output:
         Array containing the model fluxes corresponding to the given parameters
         '''
-        diskout,narrowout = plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.linesbroad, self.fixed, self.fitted) 
+        diskout,narrowout, broadout = plot_linefit_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, self.x, self.y, self.yerr, self.lines, self.linesbroad, self.fixed, self.fitted) 
         return diskout,narrowout,broadout
 
 
