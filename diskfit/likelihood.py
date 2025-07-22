@@ -1902,7 +1902,7 @@ def loglikelihood_circ_fixeddoublet_freeamplitudes_addbroadline_Halpha(theta, w,
         narrowmodel1+=line*amp 
     model = np.sum((diskout,narrowmodel,broadmodel),axis=0) 
     sigma2 = yerr**2  
-    return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2)) 
+    return -0.5 * np.sum((y - model) ** 2 / sigma2 + np.log(sigma2))
 
 
 def loglikelihood_circ_fixeddoublet_freeamplitudes_addbroadline_Hbeta(theta, w, y, yerr, lines, linesbroad, fixed, fitted):

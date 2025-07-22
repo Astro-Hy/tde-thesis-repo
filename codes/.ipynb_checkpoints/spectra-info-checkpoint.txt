@@ -1,0 +1,34 @@
+## These are some information about most of the spectra that I used in the thesis ##
+
+ASASSN-18pg (https://iopscience.iop.org/article/10.3847/1538-4357/ab9f3d) ref: Leloudas et al 2019
+Date: 10/28/2018
+Redshift: 0.017932
+Telescope/Instrument: SOAR:Goodman_M1+M2
+
+Second observation: MJD 58334 (08/04/2018)
+Third observation: (02/26/2019) ESO-NTT / EFOSC2-NTT
+_
+
+AT2018hyz: https://academic.oup.com/mnras/article/498/3/4119/5900532 ref: Gomez et al. 2020
+Date (JD): 2458496.5 -- MJD 58496
+Redshift: 0.04573
+Telescope: ESO-NTT; Instrument: EFOSC2-NTT
+
+Second observation: 2458468.5 -- MJD 58468
+Telescope: ESO-NTT; Instrument: EFOSC2-NTT
+
+Third observation: MJD 58551
+MDM-2.4 / OSMOS
+_
+
+AT2019qiz: https://arxiv.org/abs/2006.02454 ref: van Velzen et al 2021
+Date: 02/08/2021
+Redshift: 0.01513
+Spectrograph: ESO VLT-MUSE
+Other paper: https://ui.adsabs.harvard.edu/abs/2023MNRAS.525.1568S (coronal lines)
+_
+
+AT2020zso: https://www.aanda.org/articles/aa/abs/2022/10/aa42616-21 ref: Wevers et al 2022
+Date: 12/08/2020
+Redshift: 0.0563
+Spectrograph: ESO EFOSC2

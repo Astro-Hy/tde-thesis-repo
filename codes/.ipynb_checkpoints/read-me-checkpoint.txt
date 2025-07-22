@@ -1,0 +1,16 @@
+This directory contains all the codes that test for best fits, as well as images that were added to the thesis. There are a lot of similar Jupyter notebooks because I was testing out for each spectrum's epoch the inclusion/combination of a spiral arm, disk winds, and/or an outflow component. The following list tells how to access the notebooks containing data that were eventually included in the paper (I didn't want to change anything to prevent path-finding errors in the codes).
+
+AT2018dyb (also known as ASASSN-18pg)
+ASASSN-18pg/New
+(Epoch-9.6 means the spectrum from the epoch that was recorded 9.6 days before peak visible light, and so on for the other epochs)
+
+AT2018hyz
+Inside the AT2018hyz folder, the actual chronological order is second-epoch (36d), first-epoch (63d), third-epoch (119d). Any notebooks outside these folders are from a long time ago.
+
+AT2019qiz
+AT2019qiz/Epochs
+
+AT2020nov was unused since the only spectrum that I found on https://www.wiserep.org/ had a very low resolution. But Charlotte said this is an interesting object according to its source papers, so maybe ask the authors for more spectra!
+
+AT2020zso
+The notebook called H-alpha-fit-spiral-arm.ipynb
