@@ -16,4 +16,4 @@ examples/emcee.h5
 
 # editor temp files
 *~
-*.swp
+*.swp*.h5
